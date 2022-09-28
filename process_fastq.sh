@@ -17,7 +17,7 @@ pear -j $Jobs -q 10 -n ${length} \
     -o ${fastqDIR}/${sample} &> logs/pear/${sample}.log.txt;
 wait;
 
-# gzip -f ${fastqDIR}/${sample}.*.fastq
+gzip -f ${fastqDIR}/${sample}.*.fastq
 
 echo -e `date`"\t"$sample"\ttrim"
 cutadapt \
