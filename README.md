@@ -7,14 +7,13 @@ ___
 - Tool: [PEAR - Paired-End reAd mergeR](https://www.h-its.org/software/pear-paired-end-read-merger/)
 - Tasks:
   - Assemble and keep reads with significant overlapping regions
+  - Keep assembled reads larger than given length
 
 ### Trimming task
 - Tool: [Cutadapt](cutadapt.readthedocs.io)
 - Tasks:
-  - Exclude low qulity reads
-  - Keep reads with 5' adaptor sequences of both R1 and R2
+  - Keep reads with R1 5' adaptor and reverse complement of R2 5' adaptor in 5' and 3' of assembled read
   - Trim adaptors from the reads
-  - Keep reads with desired assembly size
 
 ## Count and location of spacers in sequencing reads
 ### Find location of given sequence 
