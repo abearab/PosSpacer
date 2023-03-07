@@ -4,7 +4,7 @@ import pandas as pd
 import polars as pl
 
 
-def read_fastq_to_dataframe(fastq_file_path: str) -> pd.DataFrame:
+def fastq_to_dataframe(fastq_file_path: str) -> pd.DataFrame:
     """
     Reads a FASTQ file and returns a Polars DataFrame with the following columns:
     - 'id': the sequence ID (e.g. "@SEQ_ID")
@@ -31,6 +31,13 @@ def read_fastq_to_dataframe(fastq_file_path: str) -> pd.DataFrame:
     df = pl.from_pandas(df)
 
     return df
+
+
+def fastq_to_count_unique_seq(fastq_file_path: str) -> pl.DataFrame:
+    df = fastq_to_dataframe(fastq_file_path)
+    df_count = df.groupby('seq').count()
+
+    return df_count
 
 
 def apply_pattern_matching(df: pl.DataFrame, pattern: str) -> pl.DataFrame:
