@@ -1,0 +1,14 @@
+name: PosSpacer
+channels:
+  - anaconda
+  - conda-forge
+  - bioconda
+dependencies:
+  - biopython
+  - cutadapt
+  - numpy
+  - pandas
+  - ipykernel
+  - pear
+  - multiqc
+  - seqkit
