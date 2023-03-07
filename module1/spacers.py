@@ -59,10 +59,11 @@ def fastq_to_dataframe(fastq_file_path: str, num_threads: int, seq_only=True) ->
 
 
 def fastq_to_count_unique_seq(fastq_file_path: str, num_threads: int) -> pl.DataFrame:
+    df = fastq_to_dataframe(fastq_file_path, num_threads)
+
     t0 = time()
     print('Count unique sequences')
 
-    df = fastq_to_dataframe(fastq_file_path, num_threads)
     df_count = df.groupby('seq').count()
 
     print("done in %0.3fs" % (time() - t0))
