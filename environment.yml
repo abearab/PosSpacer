@@ -12,3 +12,9 @@ dependencies:
   - pear
   - multiqc
   - seqkit
+  - polars
+  - pyarrow
+  - ca-certificates
+  - certifi
+  - openssl
+
