@@ -2,39 +2,52 @@ import gzip
 from Bio import SeqIO
 import pandas as pd
 import polars as pl
+import multiprocessing as mp
 
 
-def fastq_to_dataframe(fastq_file_path: str) -> pd.DataFrame:
+def read_records(file_path, queue):
+    if file_path.endswith('.gz'):
+        handle = gzip.open(file_path, "rt")
+    else:
+        handle = open(file_path, "rt")
+
+    for record in SeqIO.parse(handle, "fastq"):
+        queue.put((str(record.id), str(record.seq), str(record.letter_annotations["phred_quality"])))
+
+    handle.close()
+    queue.put(None)
+
+
+def fastq_to_dataframe(fastq_file_path: str, num_threads: int) -> pl.DataFrame:
     """
     Reads a FASTQ file and returns a Polars DataFrame with the following columns:
     - 'id': the sequence ID (e.g. "@SEQ_ID")
     - 'seq': the nucleotide sequence
     - 'qual': the sequence quality scores
     """
-    def read_records(file_path):
-        if file_path.endswith('.gz'):
-            handle = gzip.open(file_path, "rt")
-        else:
-            handle = open(file_path, "rt")
+    manager = mp.Manager()
+    queue = manager.Queue()
+    pool = mp.Pool(num_threads, initializer=read_records, initargs=(fastq_file_path, queue))
 
-        for record in SeqIO.parse(handle, "fastq"):
-            yield (str(record.id), str(record.seq), str(record.letter_annotations["phred_quality"]))
+    results = []
+    while True:
+        record = queue.get()
+        if record is None:
+            break
+        results.append(record)
 
-        handle.close()
-
-    # Read the FASTQ file into a list of tuples
-    records = list(read_records(fastq_file_path))
+    pool.close()
+    pool.join()
 
     # Create a Polars DataFrame from the list of tuples
-    df = pd.DataFrame(records, columns=['id', 'seq', 'qual'], dtype='str')
-
+    df = pd.DataFrame(results, columns=['id', 'seq', 'qual'], dtype='str')
     df = pl.from_pandas(df)
 
     return df
 
 
-def fastq_to_count_unique_seq(fastq_file_path: str) -> pl.DataFrame:
-    df = fastq_to_dataframe(fastq_file_path)
+def fastq_to_count_unique_seq(fastq_file_path: str, num_threads: int) -> pl.DataFrame:
+    df = fastq_to_dataframe(fastq_file_path, num_threads)
     print('FASTQ file loaded as a Polars DataFrame!')
     df_count = df.groupby('seq').count()
     print('Count unique sequences!')
