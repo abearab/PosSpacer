@@ -3,23 +3,25 @@ from Bio import SeqIO
 from time import time
 import pandas as pd
 import polars as pl
-import multiprocessing as mp
+from joblib import Parallel, delayed
 
 
-def read_records(file_path, queue, seq_only = True):
+def read_records(file_path, seq_only = True):
     if file_path.endswith('.gz'):
         handle = gzip.open(file_path, "rt")
     else:
         handle = open(file_path, "rt")
 
+    records = []
     for record in SeqIO.parse(handle, "fastq"):
         if seq_only:
-            queue.put((str(record.seq)))
+            records.append((str(record.seq)))
         else:
-            queue.put((str(record.id), str(record.seq), str(record.letter_annotations["phred_quality"])))
+            records.append((str(record.id), str(record.seq), str(record.letter_annotations["phred_quality"])))
 
     handle.close()
-    queue.put(None)
+
+    return records
 
 
 def fastq_to_dataframe(fastq_file_path: str, num_threads: int, seq_only=True) -> pl.DataFrame:
@@ -32,19 +34,25 @@ def fastq_to_dataframe(fastq_file_path: str, num_threads: int, seq_only=True) ->
     t0 = time()
     print('load FASTQ file as a Polars DataFrame')
 
-    manager = mp.Manager()
-    queue = manager.Queue()
-    pool = mp.Pool(num_threads, initializer=read_records, initargs=(fastq_file_path, queue, seq_only))
+    # Use joblib to parallelize the reading of the FASTQ file
+    records = Parallel(n_jobs=num_threads)(delayed(read_records)(fastq_file_path) for i in range(num_threads))
 
-    results = []
-    while True:
-        record = queue.get()
-        if record is None:
-            break
-        results.append(record)
+    # Flatten the list of records
+    results = [record for sublist in records for record in sublist]
 
-    pool.close()
-    pool.join()
+    # manager = mp.Manager()
+    # queue = manager.Queue()
+    # pool = mp.Pool(num_threads, initializer=read_records, initargs=(fastq_file_path, queue, seq_only))
+    #
+    # results = []
+    # while True:
+    #     record = queue.get()
+    #     if record is None:
+    #         break
+    #     results.append(record)
+    #
+    # pool.close()
+    # pool.join()
 
     # Create a Polars DataFrame from the list of tuples
     if seq_only:
