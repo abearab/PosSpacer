@@ -6,7 +6,7 @@ import polars as pl
 from joblib import Parallel, delayed
 
 
-def read_records(file_path, seq_only = True):
+def read_records(file_path, seq_only=True):
     if file_path.endswith('.gz'):
         handle = gzip.open(file_path, "rt")
     else:
@@ -39,20 +39,6 @@ def fastq_to_dataframe(fastq_file_path: str, num_threads: int, seq_only=True) ->
 
     # Flatten the list of records
     results = [record for sublist in records for record in sublist]
-
-    # manager = mp.Manager()
-    # queue = manager.Queue()
-    # pool = mp.Pool(num_threads, initializer=read_records, initargs=(fastq_file_path, queue, seq_only))
-    #
-    # results = []
-    # while True:
-    #     record = queue.get()
-    #     if record is None:
-    #         break
-    #     results.append(record)
-    #
-    # pool.close()
-    # pool.join()
 
     # Create a Polars DataFrame from the list of tuples
     if seq_only:
