@@ -35,7 +35,9 @@ def fastq_to_dataframe(fastq_file_path: str) -> pd.DataFrame:
 
 def fastq_to_count_unique_seq(fastq_file_path: str) -> pl.DataFrame:
     df = fastq_to_dataframe(fastq_file_path)
+    print('FASTQ file loaded as a Polars DataFrame!')
     df_count = df.groupby('seq').count()
+    print('Count unique sequences!')
 
     return df_count
 
