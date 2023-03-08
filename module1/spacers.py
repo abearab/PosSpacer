@@ -24,6 +24,18 @@ def read_records(file_path, seq_only=True):
     return records
 
 
+def read_fasta(path):
+    file = open(path)
+    lines = file.read().splitlines()
+    ids = [s[1:] for s in lines if '>' in s]
+    n = [i for i, s in enumerate(lines) if '>' in s]
+    n.append(len(lines))
+    sequences = [''.join(lines[i + 1:j]) for i, j in zip(n[:-1], n[1:])]
+    file.close()
+    fa = dict(zip(ids, sequences))
+    return fa
+
+
 def fastq_to_dataframe(fastq_file_path: str, num_threads: int, seq_only=True) -> pl.DataFrame:
     """
     Reads a FASTQ file and returns a Polars DataFrame with the following columns:
@@ -65,16 +77,28 @@ def fastq_to_count_unique_seq(fastq_file_path: str, num_threads: int) -> pl.Data
     return df_count
 
 
-def apply_pattern_matching(df: pl.DataFrame, pattern: str) -> pl.DataFrame:
+def dataframe_to_compressed_file(df: pl.DataFrame, file_path: str) -> None:
     """
-    Applies pattern matching to the 'seq' column of the input Polars DataFrame and creates a new column 'matches'
-    that indicates whether each sequence contains the specified pattern.
+    Writes a Polars DataFrame to a compressed file using the gzip module.
     """
-    # Apply pattern matching to the 'seq' column using Polars' str.contains() method
-    matches = df['seq'].str.contains(pattern)
+    with gzip.open(file_path, 'wt', compresslevel=6) as file:
+        df.to_csv(file, sep='\t', index=False, encoding='utf-8')
 
-    # Create a new DataFrame with the 'matches' column added to the original DataFrame
-    new_df = df.with_column('matches', matches)
 
-    return new_df
+def read_library_to_dataframe(path):
+    fa = read_fasta(path)
+    df = pd.Series(fa).reset_index().rename({'index': 'oligoname', 0: 'sequence'}, axis=1).set_index('sequence')
+    return df
+
+
+def map_sample_counts_to_library(library, sample):
+    counts_df = library.copy()
+
+    ol = list(set(library.index.tolist()) & set(sample['seq'].to_list()))
+
+    counts_df['counts'] = 0
+    counts_df.loc[ol, 'counts'] = sample.to_pandas().set_index('seq').loc[ol, 'count']
+
+    return counts_df.reset_index(drop=True).set_index('oligoname')
+
 
