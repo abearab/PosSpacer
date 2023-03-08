@@ -24,18 +24,6 @@ def read_records(file_path, seq_only=True):
     return records
 
 
-def read_fasta(path):
-    file = open(path)
-    lines = file.read().splitlines()
-    ids = [s[1:] for s in lines if '>' in s]
-    n = [i for i, s in enumerate(lines) if '>' in s]
-    n.append(len(lines))
-    sequences = [''.join(lines[i + 1:j]) for i, j in zip(n[:-1], n[1:])]
-    file.close()
-    fa = dict(zip(ids, sequences))
-    return fa
-
-
 def fastq_to_dataframe(fastq_file_path: str, num_threads: int, seq_only=True) -> pl.DataFrame:
     """
     Reads a FASTQ file and returns a Polars DataFrame with the following columns:
@@ -75,20 +63,6 @@ def fastq_to_count_unique_seq(fastq_file_path: str, num_threads: int) -> pl.Data
     print("done in %0.3fs" % (time() - t0))
 
     return df_count
-
-
-def dataframe_to_compressed_file(df: pl.DataFrame, file_path: str) -> None:
-    """
-    Writes a Polars DataFrame to a compressed file using the gzip module.
-    """
-    with gzip.open(file_path, 'wt', compresslevel=6) as file:
-        df.to_csv(file, sep='\t', index=False, encoding='utf-8')
-
-
-def read_library_to_dataframe(path):
-    fa = read_fasta(path)
-    df = pd.Series(fa).reset_index().rename({'index': 'oligoname', 0: 'sequence'}, axis=1).set_index('sequence')
-    return df
 
 
 def map_sample_counts_to_library(library, sample):
